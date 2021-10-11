@@ -15,48 +15,47 @@ int main()
 	while (filesystem::exists(path))
 	{
 		Mat originalimg = imread(path);
-		Mat img, biFilter, processImg;
+		Mat img, biFilter, filtered_image;
 		copyTo(originalimg, img, noArray());
 		cvtColor(img, img, COLOR_BGR2GRAY);
 
 		bilateralFilter(img, biFilter, 13, 15, 15);
-		medianBlur(biFilter, processImg, 3);
+		medianBlur(biFilter, filtered_image, 3);
 
-		vector<vector<Point>> edges, contours, possiblePlates;
+		vector<vector<Point>> edges, contours, possible_plates;
 		vector<Vec4i> out_array;
+		
+		Mat edged(filtered_image.cols, filtered_image.rows, CV_8UC1);
 
-		Mat edged(processImg.cols, processImg.rows, CV_8UC1);
-
-		Canny(processImg, edged, 30, 200);
+		Canny(filtered_image, edged, 30, 200);
 
 		findContours(edged, contours, out_array, RETR_TREE, CHAIN_APPROX_SIMPLE);
-
+		
 		sort(contours.begin(), contours.end(), [](const vector<Point>& a, const vector<Point>& b) { return a.size() > b.size(); });
 
 		for (auto& contour : contours)
 		{
-			double peri = arcLength(contour, true);
 			vector<Point> approx;
-			approxPolyDP(contour, approx, 0.018 * peri, true);
-			double aspectRatio = boundingRect(contour).size().aspectRatio();
+			double epsilon = 0.015 * arcLength(contour, true);
+			approxPolyDP(contour, approx, epsilon, true);
 			if (approx.size() == 4)
 			{
-				possiblePlates.push_back(approx);
+				possible_plates.push_back(approx);
 			}
 		}
-
-		sort(possiblePlates.begin(), possiblePlates.end(), [](const vector<Point>& a, const vector<Point>& b) { return boundingRect(a).area() > boundingRect(b).area(); });
+		
+		sort(possible_plates.begin(), possible_plates.end(), [](const vector<Point>& a, const vector<Point>& b) { return boundingRect(a).area() > boundingRect(b).area(); });
 
 		int largest_p_vec = 0, probable_plate_idx = 0;
-		for (int i = 0; i < possiblePlates.size(); i++)
+		for (int i = 0; i < possible_plates.size(); i++)
 		{
-			Rect rect = boundingRect(possiblePlates[i]);
+			Rect rect = boundingRect(possible_plates[i]);
 
 			vector<vector<Point>> contours_p;
 			vector<Vec4i> out_array_p;
 
-			Mat p_cnt = edged(rect);
-			findContours(p_cnt, contours_p, out_array_p, RETR_TREE, CHAIN_APPROX_SIMPLE);
+			Mat canny_cropped = edged(rect);
+			findContours(canny_cropped, contours_p, out_array_p, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
 			if (contours_p.size() > 0)
 			{
@@ -67,11 +66,9 @@ int main()
 				}
 			}
 		}
-		drawContours(originalimg, possiblePlates, probable_plate_idx, Scalar(0, 0, 255), 3);
+		drawContours(originalimg, possible_plates, probable_plate_idx, Scalar(0, 0, 255), 3);
 
-
-		imshow("processed", edged);
-		imshow("original", originalimg);
+		imshow("final", originalimg);
 
 		waitKey();
 
