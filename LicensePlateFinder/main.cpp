@@ -50,16 +50,12 @@ int main()
 		int largest_p_vec = 0, probable_plate_idx = 0;
 		for (int i = 0; i < possiblePlates.size(); i++)
 		{
-			Mat temp;
-			copyTo(img, temp, noArray());
 			Rect rect = boundingRect(possiblePlates[i]);
-			Mat plateCropped = temp(rect);
 
 			vector<vector<Point>> contours_p;
 			vector<Vec4i> out_array_p;
 
-			Mat p_cnt(plateCropped.cols, plateCropped.rows, CV_8UC1);
-			Canny(plateCropped, p_cnt, 30, 200);
+			Mat p_cnt = edged(rect);
 			findContours(p_cnt, contours_p, out_array_p, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
 			if (contours_p.size() > 0)
