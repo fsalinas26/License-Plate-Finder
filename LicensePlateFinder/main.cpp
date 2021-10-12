@@ -1,9 +1,10 @@
-
 #include <iostream>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <filesystem>
+
+#define SHOW_CANNY
 
 using namespace cv;
 using namespace std;
@@ -28,9 +29,15 @@ int main()
 		Mat edged(filtered_image.cols, filtered_image.rows, CV_8UC1);
 
 		Canny(filtered_image, edged, 30, 200);
-
-		findContours(edged, contours, out_array, RETR_TREE, CHAIN_APPROX_SIMPLE);
 		
+		findContours(edged, contours, out_array, RETR_TREE, CHAIN_APPROX_SIMPLE);
+#ifdef SHOW_CANNY
+		Mat canny_out(edged.rows, edged.cols, CV_8UC1,Scalar(0));
+		drawContours(canny_out, contours, -1, Scalar(255, 0, 0), 2);
+		imshow("canny out", canny_out);
+		waitKey();
+#endif // SHOW_CANNY
+
 		sort(contours.begin(), contours.end(), [](const vector<Point>& a, const vector<Point>& b) { return a.size() > b.size(); });
 
 		for (auto& contour : contours)
@@ -40,7 +47,12 @@ int main()
 			approxPolyDP(contour, approx, epsilon, true);
 			if (approx.size() == 4)
 			{
-				possible_plates.push_back(approx);
+				
+				double length = ((double)approx[1].x - approx[0].x) / ((double)approx[2].x - approx[3].x);
+				double height = ((double)approx[2].y - approx[1].y) / ((double)approx[3].y - approx[0].y);
+				double parallel = (length + height) / 2;
+				if(parallel < 1.1 && parallel > 0.9)
+					possible_plates.push_back(approx);
 			}
 		}
 		
@@ -55,7 +67,7 @@ int main()
 			vector<Vec4i> out_array_p;
 
 			Mat canny_cropped = edged(rect);
-			findContours(canny_cropped, contours_p, out_array_p, RETR_TREE, CHAIN_APPROX_SIMPLE);
+			findContours(canny_cropped, contours_p, out_array_p, RETR_LIST, CHAIN_APPROX_SIMPLE);
 
 			if (contours_p.size() > 0)
 			{
