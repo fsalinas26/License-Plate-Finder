@@ -41,3 +41,7 @@ this data would be processed using OCR.
 <p align="center">
 <img src="https://i.gyazo.com/a777c840ccb163b33fa7d6d1a017a6b3.jpg" width="50%" height="50%"> 
 </p> 
+
+
+<img src="https://i.gyazo.com/ba44f91e24d97887491bae5f7078da32.png" >
+
